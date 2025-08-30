@@ -1,0 +1,48 @@
+project_name: nnav
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: nnav
+    main: .
+    binary: nnav
+    env:
+      - CGO_ENABLED=0
+    goos: [linux]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: tarballs
+    builds: [nnav]
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+nfpms:
+  - id: packages
+    builds: [nnav]
+    formats: [deb, rpm]
+    package_name: nnav
+    vendor: Brian McJilton
+    maintainer: Brian McJilton <brian.mcjilton@gmail.com>
+    description: "Notes Navigator"
+    license: MIT
+    homepage: https://github.com/brianmcjilton/nnav
+    bindir: /usr/bin
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/doc/nnav/LICENSE
+    recommends:
+      - less
+    umask: 0o022
+    deb:
+      scripts:
+        postinstall: scripts/postinstall.sh
+    rpm:
+      scripts:
+        postinstall: scripts/postinstall.sh
+
+release:
+  disable: true
+
