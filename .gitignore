@@ -1,2 +1,30 @@
 # Added by goreleaser init:
 dist/
+# Binaries and build artifacts
+nnav
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# GoReleaser / build output
+/dist/
+/build/
+/bin/
+/coverage/
+
+# Editor / OS junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Logs / temp files
+*.log
+*.tmp
+
