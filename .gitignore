@@ -1,7 +1,6 @@
 # Added by goreleaser init:
 dist/
 # Binaries and build artifacts
-nnav
 *.exe
 *.exe~
 *.dll
