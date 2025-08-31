@@ -66,20 +66,15 @@ Edit that file to point to your own notes directory.
 ## 🛠 Roadmap
 
 - [ ] Search/filter notes (`/`)
-- [ ] Read-only view with pager (`o`)
-- [ ] Configurable file extensions
-- [ ] Live refresh with `fsnotify`
-- [ ] Ship prebuilt `.deb` and `.rpm` via GitHub Releases
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests and issues are welcome.  
 Please open an issue first if you’d like to discuss a major change.
 
 ---
 
 ## 📜 License
 
-MIT © [Brian McJilton](https://github.com/brianmcjilton
+MIT © [Brian McJilton] (https://github.com/brianmcjilton)
