@@ -3,7 +3,7 @@ APP=nnav
 .PHONY: build run clean rpm deb pack snapshot
 
 build:
-	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o $(APP) .
+	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o $(APP) ./cmd/nnav
 
 run: build
 	./$(APP)

@@ -24,6 +24,8 @@ var (
 	userConfigFile = ".nnav" // located in the user's home dir
 )
 
+const helpText = "↑/↓ move • → expand • ← collapse • <enter> open • <q> quit"
+
 // ensureConfig makes sure ~/.nnav exists, creating it with default notesdir if missing.
 func ensureConfig() (string, error) {
 	home, err := os.UserHomeDir()
@@ -69,7 +71,6 @@ func loadNotesDirFromConfig() (string, error) {
 }
 
 // expandTilde expands a leading ~ or ~/… to the user's home directory.
-// (Intentionally does NOT expand arbitrary environment variables.)
 func expandTilde(p string) (string, error) {
 	if p == "" {
 		return "", nil
@@ -120,6 +121,15 @@ func scanTitle(p string) string {
 		}
 	}
 	return ""
+}
+
+type Node struct {
+	Name     string
+	Path     string
+	IsDir    bool
+	Expanded bool
+	Title    string
+	Children []*Node
 }
 
 func buildTree(root string) (*Node, error) {
@@ -177,7 +187,6 @@ func readDirNodes(dir string) ([]*Node, error) {
 
 // resolveEditor returns a command slice to launch the preferred editor.
 // Priority: $VISUAL -> $EDITOR -> first available of [vim, vi, nano].
-// (This keeps editor selection flexible; if you want zero-env usage, hard-code vim.)
 func resolveEditor() []string {
 	candidates := []string{}
 	if v := strings.TrimSpace(os.Getenv("VISUAL")); v != "" {
@@ -200,16 +209,7 @@ func resolveEditor() []string {
 	return []string{"/bin/vi"}
 }
 
-// --- TUI types/model ---
-
-type Node struct {
-	Name     string
-	Path     string
-	IsDir    bool
-	Expanded bool
-	Title    string
-	Children []*Node
-}
+// --- TUI ---
 
 type Visible struct {
 	N     *Node
@@ -226,17 +226,47 @@ type model struct {
 }
 
 func newModel(root *Node) model {
-	help := "↑/↓ or j/k move • →/l expand • ←/h collapse • enter open • r reload • q quit"
-	m := model{root: root, cursor: 0, status: help}
+	m := model{root: root, cursor: 0, status: helpText}
 	m.recompute()
 	return m
 }
 
+// displayName returns what we render for a node:
+// - files: Title if present, else filename
+// - dirs: directory name
+func displayName(n *Node) string {
+	if n.IsDir {
+		return n.Name
+	}
+	if t := strings.TrimSpace(n.Title); t != "" {
+		return t
+	}
+	return n.Name
+}
+
 func (m *model) recompute() {
 	m.visible = m.visible[:0]
-	flatten(m.root, 0, &m.visible)
+
+	// Hide the top-level root node: show its children as top level.
+	for _, c := range m.root.Children {
+		flatten(c, 0, &m.visible)
+	}
+
 	if m.cursor >= len(m.visible) {
-		m.cursor = max(0, len(m.visible)-1)
+		if len(m.visible) == 0 {
+			m.cursor = 0
+		} else {
+			m.cursor = len(m.visible) - 1
+		}
+	}
+}
+
+func flatten(n *Node, depth int, out *[]Visible) {
+	*out = append(*out, Visible{N: n, Depth: depth})
+	if n.IsDir && n.Expanded {
+		for _, c := range n.Children {
+			flatten(c, depth+1, out)
+		}
 	}
 }
 
@@ -264,6 +294,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 		case "right", "l":
+			if len(m.visible) == 0 {
+				break
+			}
 			cur := m.visible[m.cursor].N
 			if cur.IsDir && !cur.Expanded {
 				if err := expandIfNeeded(cur); err != nil {
@@ -273,28 +306,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		case "left", "h":
+			if len(m.visible) == 0 {
+				break
+			}
 			cur := m.visible[m.cursor].N
 			if cur.IsDir && cur.Expanded {
 				cur.Expanded = false
 				m.recompute()
 			}
 		case "enter":
+			if len(m.visible) == 0 {
+				break
+			}
 			cur := m.visible[m.cursor].N
 			if !cur.IsDir {
 				ed := resolveEditor()
+
+				// Exit alt screen & show cursor for the external editor.
+				fmt.Print("\x1b[?1049l\x1b[?25h")
+
 				cmd := exec.Command(ed[0], append(ed[1:], cur.Path)...)
 				cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-				// Exit alt screen for external editor, then re-enter.
-				fmt.Print("\x1b[?1049l")
 				_ = cmd.Run()
-				fmt.Print("\x1b[?1049h")
-				// Rebuild after editor closes
+
+				// Re-enter alt screen, hide cursor, and clear the screen to force a fresh redraw.
+				fmt.Print("\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H")
+
+				// Rebuild after editor closes; keep footer/help text.
 				rootPath, _ := notesRoot()
 				if root, err := buildTree(rootPath); err == nil {
 					m.root = root
 					m.cursor = 0
 					m.recompute()
-					m.status = "opened with: " + strings.Join(ed, " ")
+					m.status = helpText
 				} else {
 					m.status = "reload failed: " + err.Error()
 				}
@@ -343,7 +387,6 @@ func (m model) View() string {
 func renderLine(v Visible) string {
 	indent := strings.Repeat("  ", v.Depth)
 	prefix := "  "
-	name := v.N.Name
 	if v.N.IsDir {
 		if v.N.Expanded {
 			prefix = "▾ "
@@ -353,20 +396,8 @@ func renderLine(v Visible) string {
 	} else {
 		prefix = "• "
 	}
-	title := v.N.Title
-	if title != "" {
-		name = fmt.Sprintf("%s — %s", name, title)
-	}
+	name := displayName(v.N)
 	return indent + prefix + name
-}
-
-func flatten(n *Node, depth int, out *[]Visible) {
-	*out = append(*out, Visible{N: n, Depth: depth})
-	if n.IsDir && n.Expanded {
-		for _, c := range n.Children {
-			flatten(c, depth+1, out)
-		}
-	}
 }
 
 func expandIfNeeded(n *Node) error {
@@ -404,4 +435,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-
