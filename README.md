@@ -1,7 +1,11 @@
 # nnav — Notes Navigator
 
-A fast, keyboard-driven **terminal UI (TUI)** for browsing your notes.  
-`nnav` scans a directory of plain-text or Markdown (`.txt`, `.md`) files and shows them in a collapsible tree.  
+> If you prefer taking notes in plain text or Markdown from the terminal, **nnav** makes it easy to browse and open them.
+
+**nnav** is a fast, keyboard-driven **terminal UI (TUI)** for browsing your notes.
+  
+`nnav` scans your notes directory of plain-text or Markdown (`.txt`, `.md`) files and shows them in a collapsible tree.
+
 The first Markdown heading (`# ...`) in each note is used as its description.
 
 ---
