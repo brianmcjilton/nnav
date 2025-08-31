@@ -1,3 +1,4 @@
+version: 2
 project_name: nnav
 
 before:
@@ -6,43 +7,58 @@ before:
 
 builds:
   - id: nnav
-    main: .
+    main: ./cmd/nnav
     binary: nnav
     env:
       - CGO_ENABLED=0
     goos: [linux]
     goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
 
 archives:
   - id: tarballs
     builds: [nnav]
     format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "{{ .ProjectName }}_checksums_{{ .Version }}.txt"
 
 nfpms:
   - id: packages
-    builds: [nnav]
+    # Emit both .deb and .rpm
     formats: [deb, rpm]
     package_name: nnav
+    builds: [nnav]
+    bindir: /usr/bin
     vendor: Brian McJilton
     maintainer: Brian McJilton <brian.mcjilton@gmail.com>
-    description: "Notes Navigator"
+    description: "nnav — terminal notes navigator (TUI) for .md/.txt; opens in your editor"
     license: MIT
     homepage: https://github.com/brianmcjilton/nnav
-    bindir: /usr/bin
     contents:
-      - src: ./LICENSE
+      - src: LICENSE
         dst: /usr/share/doc/nnav/LICENSE
-    recommends:
-      - less
+      - src: README.md
+        dst: /usr/share/doc/nnav/README.md
     umask: 0o022
-    deb:
-      scripts:
-        postinstall: scripts/postinstall.sh
-    rpm:
-      scripts:
-        postinstall: scripts/postinstall.sh
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
 
 release:
-  disable: true
+  # With `--snapshot`, nothing is published. Remove/adjust when you start tagging real releases.
+  footer: |-
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
 
