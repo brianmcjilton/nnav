@@ -38,21 +38,10 @@ The first Markdown heading (`# ...`) in each note is used as its description.
 
 ## 📦 Installation
 
-### Build from source (Go 1.22+)
+### Option 1: Prebuilt packages (recommended)
 
-    git clone https://github.com/brianmcjilton/nnav
-    cd nnav
-    make build
-    sudo cp nnav /usr/local/bin/
+Visit the [Releases page](https://github.com/brianmcjilton/nnav/releases) and download the latest package for your system.
 
-### From packages (Deb/RPM)
-
-*(coming soon with GoReleaser)*
-
-    # Example, once releases are published:
-    sudo dpkg -i nnav_0.1.0_amd64.deb
-    # or
-    sudo rpm -i nnav-0.1.0.x86_64.rpm
 
 ---
 
