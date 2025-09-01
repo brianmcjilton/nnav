@@ -22,8 +22,10 @@ The first Markdown heading (`# ...`) in each note is used as its description. If
 - Opens the selected note in your editor
 - Config file at `~/.nnav` defines notes dir and editor:
 
-    notesdir=~/notes
-    editor=vim
+```ini
+notesdir=~/notes
+editor=vim
+```
 
 - Create and organize your own tree of directories and plain text/Markdown notes. No databases, no proprietary formats, no vendor lock-in — just files you control
 
