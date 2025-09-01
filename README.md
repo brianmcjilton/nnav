@@ -14,17 +14,18 @@ The first Markdown heading (`# ...`) in each note is used as its description. If
 
 ## ✨ Features
 
-- Single binary, no external services
+- Single binary, no dependencies
 - Collapsible directory tree of your notes
 - Supports `.md` and `.txt` files
 - Shows the first Markdown heading as a description
 - Vim-style keybindings (`h/j/k/l`, `q` to quit, etc.)
-- Opens the selected note in your editor (user configurable)
-- Config file at `~/.nnav` defines where your notes live:
+- Opens the selected note in your editor
+- Config file at `~/.nnav` defines notes dir and editor:
 
     notesdir=~/notes
+    editor=vim
 
-  Created automatically on first run if missing. Edit it to point to any directory you want.
+- Create and organize your own tree of directories and plain text/Markdown notes. No databases, no proprietary formats, no vendor lock-in — just files you control
 
 ---
 
