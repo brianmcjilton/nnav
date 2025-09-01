@@ -7,13 +7,19 @@ import (
 )
 
 var (
+	// Default directory name under $HOME if not overridden by config.
 	defaultNotesSubdir = "notes"
-	allowedExts        = map[string]bool{".md": true, ".txt": true}
 
+	// Restrict which file extensions are considered valid "note" files.
+	allowedExts = map[string]bool{".md": true, ".txt": true}
+
+	// User-specific config file (~/.nnav) that defines preferences like notesdir and editor.
 	userConfigFile = ".nnav" // located in the user's home dir
 )
 
-// ensureConfig makes sure ~/.nnav exists with secure perms and defaults.
+// ensureConfig guarantees that ~/.nnav exists with secure permissions.
+// If missing, it creates the file with default values; if present, it enforces
+// restrictive permissions (0600). This prevents accidental world-readable configs.
 func ensureConfig() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -22,13 +28,16 @@ func ensureConfig() (string, error) {
 	cfgPath := filepath.Join(home, userConfigFile)
 
 	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-		// Create file with default content, restrictive perms
-		// #nosec G304 -- cfgPath is derived from $HOME/.nnav and not attacker-controlled
+		// Config file does not exist → create with defaults.
+		// Security note: permissions are explicitly set to 0600 so only the user can read/write.
+		// #nosec G304 -- cfgPath is derived from $HOME and not attacker-controlled.
 		f, err := os.OpenFile(cfgPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			return "", err
 		}
 		defer f.Close()
+
+		// Write minimal defaults plus inline documentation for the user.
 		_, _ = f.WriteString(`# nnav configuration
 # notesdir: path to your notes directory (e.g., ~/notes). Must be readable by your user.
 # editor: which editor to launch. Allowed values: vim, nvim, vi, nano, hx, emacs
@@ -36,33 +45,37 @@ notesdir=~/notes
 editor=vim
 `)
 	} else if err == nil {
-		// Tighten perms if too loose
+		// Config file exists → ensure permissions are still locked down.
 		_ = os.Chmod(cfgPath, 0o600)
 	}
 	return cfgPath, nil
 }
 
-// loadConfig reads simple key=value pairs from ~/.nnav
+// loadConfig parses ~/.nnav into a map of key=value settings.
+// Lines starting with "#" or blank lines are ignored.
+// Invalid lines are skipped silently rather than failing the load.
 func loadConfig() (map[string]string, error) {
 	cfgPath, err := ensureConfig()
 	if err != nil {
 		return nil, err
 	}
-	// #nosec G304 -- cfgPath is computed as $HOME/.nnav and not user-controlled
+
+	// #nosec G304 -- cfgPath is computed internally, not controlled by user input.
 	data, err := os.ReadFile(cfgPath)
 	if err != nil {
 		return nil, err
 	}
+
 	m := map[string]string{}
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
-			continue
+			continue // skip comments and empty lines
 		}
 		kv := strings.SplitN(line, "=", 2)
 		if len(kv) != 2 {
-			continue
+			continue // malformed line → ignore
 		}
 		k := strings.ToLower(strings.TrimSpace(kv[0]))
 		v := strings.TrimSpace(kv[1])
@@ -71,7 +84,8 @@ func loadConfig() (map[string]string, error) {
 	return m, nil
 }
 
-// expandTilde expands a leading ~ or ~/… to the user's home directory.
+// expandTilde resolves paths starting with "~" to the user’s home directory.
+// This allows user configs to specify relative paths like "~/notes".
 func expandTilde(p string) (string, error) {
 	if p == "" {
 		return "", nil
@@ -90,7 +104,8 @@ func expandTilde(p string) (string, error) {
 	return p, nil
 }
 
-// notesRoot resolves the notes directory using ~/.nnav or fallback: ~/notes
+// notesRoot determines the effective notes directory.
+// Priority: (1) "notesdir" in ~/.nnav config, if valid, else (2) fallback to ~/notes.
 func notesRoot() (string, error) {
 	cfg, err := loadConfig()
 	if err == nil {
@@ -98,6 +113,8 @@ func notesRoot() (string, error) {
 			return expandTilde(v)
 		}
 	}
+
+	// Fallback: if no config or no notesdir set, use ~/notes.
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
