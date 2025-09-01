@@ -8,7 +8,7 @@
   
 `nnav` scans your notes directory of plain-text or Markdown (`.txt`, `.md`) files and shows them in a collapsible tree.
 
-The first Markdown heading (`# ...`) in each note is used as its description.
+The first Markdown heading (`# ...`) in each note is used as its description. If there is no Markdown heading, then the filename is displayed instead.
 
 ---
 
@@ -19,7 +19,7 @@ The first Markdown heading (`# ...`) in each note is used as its description.
 - Supports `.md` and `.txt` files
 - Shows the first Markdown heading as a description
 - Vim-style keybindings (`h/j/k/l`, `q` to quit, etc.)
-- Opens the selected note in your editor (respects `$VISUAL` → `$EDITOR`, defaults to `vim → vi → nano`)
+- Opens the selected note in your editor (user configurable)
 - Config file at `~/.nnav` defines where your notes live:
 
     notesdir=~/notes
@@ -48,7 +48,6 @@ The first Markdown heading (`# ...`) in each note is used as its description.
 
 Visit the [Releases page](https://github.com/brianmcjilton/nnav/releases) and download the latest package for your system.
 
-
 ---
 
 ## 🚀 Usage
@@ -58,7 +57,6 @@ After installing, just run:
     nnav
 
 On first run, `~/.nnav` will be created with:
-
     notesdir=~/notes
 
 Edit that file to point to your own notes directory.
