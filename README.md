@@ -49,7 +49,9 @@ editor=vim
 
 ### Option 1: Prebuilt packages (recommended)
 
-Visit the [Releases page](https://github.com/brianmcjilton/nnav/releases) and download the latest package for your system.
+Visit the [Releases page](https://github.com/brianmcjilton/nnav/releases/latest) and download the latest package for your system.
+
+### Option 2: Build from source
 
 ---
 
