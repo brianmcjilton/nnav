@@ -1,5 +1,7 @@
 # nnav — Notes Navigator
 
+[![asciicast](https://asciinema.org/a/VG22G7PK4PKLS1XkU2B2jHEPL.svg)](https://asciinema.org/a/VG22G7PK4PKLS1XkU2B2jHEPL)
+
 > If you prefer taking notes in plain text or Markdown from the terminal, **nnav** makes it easy to browse and open them.
 
 **nnav** is a fast, keyboard-driven **terminal UI (TUI)** for browsing your notes.
