@@ -1,6 +1,6 @@
 # nnav — Notes Navigator
 
-[![asciicast](https://asciinema.org/a/VG22G7PK4PKLS1XkU2B2jHEPL.svg)](https://asciinema.org/a/VG22G7PK4PKLS1XkU2B2jHEPL)
+![Demo of nnav](demo.gif)
 
 > If you prefer taking notes in plain text or Markdown from the terminal, **nnav** makes it easy to browse and open them.
 
