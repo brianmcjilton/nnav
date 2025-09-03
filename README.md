@@ -64,7 +64,11 @@ After installing, just run:
     nnav
 
 On first run, `~/.nnav` will be created with:
-    notesdir=~/notes
+
+```
+notesdir=~/notes
+editor=vim
+```
 
 Edit that file to point to your own notes directory.
 
@@ -72,7 +76,7 @@ Edit that file to point to your own notes directory.
 
 ## 🛠 Roadmap
 
-- [ ] Search/filter notes (`/`)
+- [ ] Create new note from TUI. A shortcut like <n> could open the the editor on a new file inside the selected directory.
 
 ---
 
