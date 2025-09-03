@@ -29,6 +29,8 @@ editor=vim
 
 - Create and organize your own tree of directories and plain text/Markdown notes. No databases, no proprietary formats, no vendor lock-in — just files you control
 
+- Use `nnav <keyword>` to show only notes containing that keyword (case-insensitive) for quick focused browsing.
+
 ---
 
 ## ⌨️ Keybindings
