@@ -16,7 +16,7 @@ import (
 const helpText = "↑/↓ move • → expand • ← collapse • <enter> open • <q> quit"
 
 // Soft viewport margins so the cursor isn't pinned to the edges while scrolling.
-const minTopMargin = 2   // lines to keep above cursor
+const minTopMargin = 2    // lines to keep above cursor
 const minBottomMargin = 2 // lines to keep below cursor
 
 // Visible represents a flattened view of the tree for rendering and navigation.
@@ -34,13 +34,14 @@ type Visible struct {
 // - status: footer text for help/errors.
 // - width/height: last-known terminal dimensions used for layout.
 type model struct {
-	root    *Node
-	cursor  int
-	visible []Visible
-	status  string
-	width   int
-	height  int
-	scroll  int // top index of visible window
+	root       *Node
+	cursor     int
+	visible    []Visible
+	status     string
+	width      int
+	height     int
+	scroll     int // top index of visible window
+	searchTerm string
 }
 
 // message sent after we return from the editor
@@ -49,8 +50,8 @@ type resumedMsg struct{}
 
 // newModel initializes the model and precomputes the initial visible list.
 // Starts with the root expanded at top-level.
-func newModel(root *Node) model {
-	m := model{root: root, cursor: 0, status: helpText}
+func newModel(root *Node, term string) model {
+	m := model{root: root, cursor: 0, status: helpText, searchTerm: term}
 	m.recompute()
 	return m
 }
@@ -178,7 +179,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			cur := m.visible[m.cursor].N
 			if cur.IsDir && !cur.Expanded {
-				if err := expandIfNeeded(cur); err != nil {
+				if err := expandIfNeeded(cur, m.searchTerm); err != nil {
 					m.status = "error: " + err.Error()
 				} else {
 					m.recompute()
@@ -238,7 +239,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Manual refresh: rebuild the tree from disk and reset view state.
 			// Useful when files are added/removed externally.
 			rootPath, _ := notesRoot()
-			if root, err := buildTree(rootPath); err == nil {
+			if root, err := buildTree(rootPath, m.searchTerm); err == nil {
 				m.root = root
 				m.cursor = 0
 				m.recompute()
@@ -252,7 +253,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// After returning from the editor, rebuild tree and reset the help footer.
 		// This ensures titles/ordering reflect any edits or renames.
 		if rootPath, err := notesRoot(); err == nil {
-			if root, err := buildTree(rootPath); err == nil {
+			if root, err := buildTree(rootPath, m.searchTerm); err == nil {
 				m.root = root
 				m.cursor = 0
 				m.recompute()
@@ -328,7 +329,7 @@ func renderLine(v Visible) string {
 
 // expandIfNeeded lazily loads children for a directory if not already populated,
 // and marks it expanded. No-op for files or already-expanded dirs.
-func expandIfNeeded(n *Node) error {
+func expandIfNeeded(n *Node, term string) error {
 	if !n.IsDir {
 		return nil
 	}
@@ -336,7 +337,7 @@ func expandIfNeeded(n *Node) error {
 		return nil
 	}
 	if len(n.Children) == 0 {
-		kids, err := readDirNodes(n.Path)
+		kids, err := readDirNodes(n.Path, term)
 		if err != nil {
 			return err
 		}

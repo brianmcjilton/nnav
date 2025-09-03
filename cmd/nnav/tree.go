@@ -30,40 +30,46 @@ type Node struct {
 	Children []*Node
 }
 
-// scanTitle extracts the first Markdown heading from a note file.
-// Uses safePathWithinNotes to ensure the file is inside notesRoot.
-// Returns the heading text (without #) or "" if none found.
-//
-// Implementation details:
-//   - Uses bufio.Scanner with increased buffer size to handle long lines.
-//   - Stops at the first heading encountered.
-func scanTitle(p string) string {
-	// Validate path safety before opening.
+// scanTitle returns the first Markdown heading found in the file and whether
+// the file contains term (case-insensitive). If term is empty, it always
+// matches. The search is performed while scanning for the heading to avoid
+// double reads.
+func scanTitle(p, term string) (string, bool) {
 	if safe, ok := safePathWithinNotes(p); ok {
 		f, err := os.Open(safe)
 		if err != nil {
-			return ""
+			return "", false
 		}
 		defer f.Close()
 
 		s := bufio.NewScanner(f)
-		// Allow lines up to 10MB to avoid truncation of unusually long headings.
 		s.Buffer(make([]byte, 0, 64*1024), 10*1024*1024)
+
+		title := ""
+		found := term == ""
+		lower := strings.ToLower(term)
 
 		for s.Scan() {
 			line := s.Text()
-			if m := headingRE.FindStringSubmatch(line); m != nil {
-				return m[1]
+			if m := headingRE.FindStringSubmatch(line); m != nil && title == "" {
+				title = m[1]
+			}
+			if !found && strings.Contains(strings.ToLower(line), lower) {
+				found = true
+			}
+			if found && title != "" {
+				break
 			}
 		}
+		return title, found
 	}
-	return ""
+	return "", term == ""
 }
 
 // buildTree constructs a Node tree starting at the given root path.
 // Validates that root exists, is a directory, and is listable by the user.
 // Returns a Node with populated children for the top level.
-func buildTree(root string) (*Node, error) {
+func buildTree(root, term string) (*Node, error) {
 	info, err := os.Stat(root)
 	if err != nil {
 		return nil, err
@@ -78,7 +84,7 @@ func buildTree(root string) (*Node, error) {
 	// Root node is always marked Expanded so children are shown initially.
 	rootNode := &Node{Name: filepath.Base(root), Path: root, IsDir: true, Expanded: true}
 
-	children, err := readDirNodes(root)
+	children, err := readDirNodes(root, term)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +104,8 @@ func buildTree(root string) (*Node, error) {
 //   - Skips files without allowed extensions (.md, .txt).
 //   - Skips unreadable files.
 //   - Extracts a title for note files via scanTitle().
-func readDirNodes(dir string) ([]*Node, error) {
+//   - When term is set, recursively keep only files containing the term.
+func readDirNodes(dir, term string) ([]*Node, error) {
 	ents, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -130,7 +137,14 @@ func readDirNodes(dir string) ([]*Node, error) {
 			if !isListableDir(p) {
 				continue // skip unreadable directories
 			}
-			n := &Node{Name: name, Path: p, IsDir: true}
+			var kids []*Node
+			if term != "" {
+				kids, err = readDirNodes(p, term)
+				if err != nil || len(kids) == 0 {
+					continue
+				}
+			}
+			n := &Node{Name: name, Path: p, IsDir: true, Children: kids, Expanded: term != ""}
 			nodes = append(nodes, n)
 			continue
 		}
@@ -144,8 +158,10 @@ func readDirNodes(dir string) ([]*Node, error) {
 			continue // skip unreadable files
 		}
 
-		// Extract optional title from file content.
-		title := scanTitle(p)
+		title, match := scanTitle(p, term)
+		if term != "" && !match {
+			continue
+		}
 		n := &Node{Name: name, Path: p, Title: title}
 		nodes = append(nodes, n)
 	}
